@@ -142,7 +142,7 @@ RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /opt/.npm-global/lib/node_modules/puppeteer /usr/lib/node_modules/puppeteer \
     && ln -s /usr/bin/chromium /usr/bin/google-chrome
 
-COPY xdebug.ini /usr/local/etc/php/conf.d/xdebug.ini
+COPY xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
 EXPOSE 8000
 
@@ -157,5 +157,4 @@ ENV DB_HOST "mysql"
 ENV REDIS_HOST "redis"
 ENV MONGODB_HOST "mongo"
 ENV DUSK_DRIVER_URL "localhost:9515"
-# Back to user
-USER $USERNAME
+

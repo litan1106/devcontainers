@@ -1,5 +1,5 @@
 # -------------------------------------------- Build Time Arguments ------------------------------------------------
-ARG ALPINE_VERSION="3.12"
+ARG ALPINE_VERSION="3.13"
 ARG PHP_VERSION="8.0"
 ARG COMPOSER_VERSION="2.0"
 
