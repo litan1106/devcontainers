@@ -41,7 +41,7 @@ RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
     && docker-php-source extract \
     && docker-php-ext-configure zip --with-zip \
     && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
-    bcmath exif opcache pcntl soap xsl zip gmp > /dev/null \
+    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
     && pecl install ${PECL_PHP_DEP_VERSIONS} > /dev/null \
     && docker-php-ext-enable ${PECL_PHP_DEPS} \
     && pecl bundle redis && cd redis \
