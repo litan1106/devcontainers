@@ -85,6 +85,19 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     # Python
     && apt-get -y install --no-install-recommends python3 python3-dev python3-pip python3-venv nginx redis-tools \
     && python3 -m pip install --upgrade pip setuptools supervisor \
+    # Nginx as an unprivileged user
+    && ln -sf /dev/stdout /var/log/nginx/access.log \
+    && ln -sf /dev/stderr /var/log/nginx/error.log \
+    && rm -rf /etc/nginx/sites-enabled/ \
+    && mkdir -p /var/cache/nginx \
+    && sed -i '/user www-data;/d' /etc/nginx/nginx.conf \
+    && sed -i 's,/run/nginx.pid,/tmp/nginx.pid,' /etc/nginx/nginx.conf \
+    && sed -i 's,768;,1024;,' /etc/nginx/nginx.conf \
+    && sed -i "/^http {/a \    proxy_temp_path /tmp/proxy_temp;\n    client_body_temp_path /tmp/client_temp;\n    fastcgi_temp_path /tmp/fastcgi_temp;\n    uwsgi_temp_path /tmp/uwsgi_temp;\n    scgi_temp_path /tmp/scgi_temp;\n" /etc/nginx/nginx.conf \
+    && chown -R $USERNAME:root /var/cache/nginx \
+    && chmod -R g+w /var/cache/nginx \
+    && chown -R $USERNAME:root /etc/nginx \
+    && chmod -R g+w /etc/nginx \
     #
     # PHP Extensions
     && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
@@ -105,6 +118,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     # Setup php.ini
     && mv ${PHP_INI_DIR}/php.ini-development ${PHP_INI_DIR}/php.ini \
     && rm -rf /var/www/* \
+    && rm -rf /etc/nginx/conf.d/* \
     && rm -rf /etc/nginx/conf.d/* \
     #
     # Nodejs and Yarn
