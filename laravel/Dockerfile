@@ -144,8 +144,6 @@ RUN mkdir -p /usr/lib/node_modules/ \
 
 COPY xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
-EXPOSE 8000
-
 # LARAVEL
 WORKDIR /workspace
 

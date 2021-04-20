@@ -99,3 +99,5 @@ USER root
 RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /opt/.npm-global/lib/node_modules/puppeteer /usr/lib/node_modules/puppeteer \
     && ln -s /usr/bin/chromium /usr/bin/google-chrome
+
+WORKDIR /workspace
