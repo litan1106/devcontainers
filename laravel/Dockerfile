@@ -90,6 +90,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && ln -sf /dev/stderr /var/log/nginx/error.log \
     && rm -rf /etc/nginx/sites-enabled/ \
     && mkdir -p /var/cache/nginx \
+    && echo 'daemon off;' >> /etc/nginx/nginx.conf \
     && sed -i '/user www-data;/d' /etc/nginx/nginx.conf \
     && sed -i 's,/run/nginx.pid,/tmp/nginx.pid,' /etc/nginx/nginx.conf \
     && sed -i 's,768;,1024;,' /etc/nginx/nginx.conf \
