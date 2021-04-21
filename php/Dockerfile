@@ -19,7 +19,7 @@ ARG WORK_DIR="/var/www/app"
 WORKDIR ${WORK_DIR}
 
 ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.2 msgpack-2.1.2 mongodb-1.9.1 xdebug-3.0.4"
-ARG PECL_PHP_DEPS="igbinary msgpack mongodb"
+ARG PECL_PHP_DEPS="igbinary msgpack mongodb xdebug"
 
 ARG PHP_MEMORY_LIMIT="4096M"
 ARG OPCACHE_ENABLE=1
@@ -36,29 +36,6 @@ RUN apk add --no-cache curl bash nano \
     unzip zip libzip libxml2 libxslt \
     # Fix Iconv
     gnu-libiconv
-
-# ------------------------------------------------ Extensions --------------------------------------------------
-RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
-    openssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt-dev gmp-dev \
-    && docker-php-source extract \
-    && docker-php-ext-configure zip --with-zip \
-    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
-    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
-    && pecl install ${PECL_PHP_DEP_VERSIONS} > /dev/null \
-    && docker-php-ext-enable ${PECL_PHP_DEPS} \
-    && pecl bundle redis && cd redis \
-    && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack \
-    && make && make install \
-    && docker-php-ext-enable redis \
-    && docker-php-source delete \
-    && apk del -f .build-ext-deps \
-    # Setup php.ini
-    && mv ${PHP_INI_DIR}/php.ini-production ${PHP_INI_DIR}/php.ini \
-    && rm -rf /var/www/* /usr/local/etc/php-fpm.d/* \
-    && echo "zend_extension=xdebug.so" > ${PHP_INI_DIR}/docker-php-ext-xdebug.ini \
-    && echo "xdebug.mode=off" >> ${PHP_INI_DIR}/docker-php-ext-xdebug.ini \
-    && echo "xdebug.start_with_request=yes" >> ${PHP_INI_DIR}/docker-php-ext-xdebug.ini \
-    && echo "xdebug.client_port=9003" >> ${PHP_INI_DIR}/docker-php-ext-xdebug.ini
 
 # ==================================================================================================================
 #                                                  --- SUPERVISOR ---
@@ -198,6 +175,28 @@ RUN mkdir -p /usr/lib/node_modules/ \
     # Create symlink to /usr/bin for node and yarn
     && ln -s /usr/local/bin/node /usr/bin/node \
     && ln -s /usr/local/bin/yarn /usr/bin/yarn
+
+# ------------------------------------------------ Extensions --------------------------------------------------
+RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
+    openssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt-dev gmp-dev \
+    && docker-php-source extract \
+    && docker-php-ext-configure zip --with-zip \
+    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
+    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
+    && pecl install ${PECL_PHP_DEP_VERSIONS} > /dev/null \
+    && docker-php-ext-enable ${PECL_PHP_DEPS} \
+    && pecl bundle redis && cd redis \
+    && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack \
+    && make && make install \
+    && docker-php-ext-enable redis \
+    && docker-php-source delete \
+    && apk del -f .build-ext-deps \
+    # Setup php.ini
+    && mv ${PHP_INI_DIR}/php.ini-production ${PHP_INI_DIR}/php.ini \
+    && rm -rf /var/www/* /usr/local/etc/php-fpm.d/* \
+    && echo "xdebug.mode=off" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.start_with_request=yes" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.client_port=9003" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini
 
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 COPY --from=roadrunner /usr/bin/rr /usr/bin/rr

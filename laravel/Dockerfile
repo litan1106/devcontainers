@@ -60,41 +60,6 @@ RUN curl -s https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-
 RUN chown ${USERNAME}:root /usr/local/share/copy-kube-config.sh \
     && echo "source /usr/local/share/copy-kube-config.sh" | tee -a /root/.bashrc /root/.zshrc /home/${USERNAME}/.bashrc >> /home/${USERNAME}/.zshrc
 
-# ------------------------------------------------ Extensions --------------------------------------------------
-ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.2 msgpack-2.1.2 mongodb-1.9.1 xdebug-3.0.4"
-ARG PECL_PHP_DEPS="igbinary msgpack mongodb xdebug"
-
-ARG PHP_MEMORY_LIMIT="4096M"
-ARG OPCACHE_ENABLE=1
-ARG OPCACHE_VALIDATE_TIMESTAMPS=0
-
-ENV PHP_MEMORY_LIMIT ${PHP_MEMORY_LIMIT}
-ENV OPCACHE_ENABLE ${OPCACHE_ENABLE}
-ENV OPCACHE_VALIDATE_TIMESTAMPS ${OPCACHE_VALIDATE_TIMESTAMPS}
-
-ENV COMPOSER_ALLOW_SUPERUSER 1
-
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
-    libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev libgmp-dev \
-    && docker-php-source extract \
-    && docker-php-ext-configure zip --with-zip \
-    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
-    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
-    && pecl install ${PECL_PHP_DEP_VERSIONS} > /dev/null \
-    && docker-php-ext-enable ${PECL_PHP_DEPS} \
-    && pecl bundle redis && cd redis \
-    && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack \
-    && make && make install \
-    && docker-php-ext-enable redis \
-    && docker-php-source delete \
-    # Setup php.ini
-    && mv ${PHP_INI_DIR}/php.ini-development ${PHP_INI_DIR}/php.ini \
-    && echo "zend_extension=xdebug.so" > ${PHP_INI_DIR}/docker-php-ext-xdebug.ini \
-    && echo "xdebug.mode=off" >> ${PHP_INI_DIR}/docker-php-ext-xdebug.ini \
-    && echo "xdebug.start_with_request=yes" >> ${PHP_INI_DIR}/docker-php-ext-xdebug.ini \
-    && echo "xdebug.client_port=9003" >> ${PHP_INI_DIR}/docker-php-ext-xdebug.ini
-
 # ==================================================================================================================
 #                                                  --- SUPERVISOR ---
 # ==================================================================================================================
@@ -157,6 +122,44 @@ RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /opt/.npm-global/lib/node_modules/puppeteer /usr/lib/node_modules/puppeteer \
     && ln -s /usr/bin/chromium /usr/bin/google-chrome
 
+# ------------------------------------------------ Extensions --------------------------------------------------
+ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.2 msgpack-2.1.2 mongodb-1.9.1 xdebug-3.0.4"
+ARG PECL_PHP_DEPS="igbinary msgpack mongodb xdebug"
+
+ARG PHP_MEMORY_LIMIT="4096M"
+ARG OPCACHE_ENABLE=1
+ARG OPCACHE_VALIDATE_TIMESTAMPS=0
+
+ENV PHP_MEMORY_LIMIT ${PHP_MEMORY_LIMIT}
+ENV OPCACHE_ENABLE ${OPCACHE_ENABLE}
+ENV OPCACHE_VALIDATE_TIMESTAMPS ${OPCACHE_VALIDATE_TIMESTAMPS}
+
+ENV COMPOSER_ALLOW_SUPERUSER 1
+
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
+    libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev libgmp-dev \
+    && docker-php-source extract \
+    && docker-php-ext-configure zip --with-zip \
+    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
+    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
+    && pecl install ${PECL_PHP_DEP_VERSIONS} > /dev/null \
+    && docker-php-ext-enable ${PECL_PHP_DEPS} \
+    && pecl bundle redis && cd redis \
+    && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack \
+    && make && make install \
+    && docker-php-ext-enable redis \
+    && docker-php-source delete \
+    # Setup php.ini
+    && mv ${PHP_INI_DIR}/php.ini-development ${PHP_INI_DIR}/php.ini \
+    && echo "xdebug.mode=off" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.start_with_request=yes" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.client_port=9003" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
+    # Clean up
+    && apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 COPY --from=roadrunner /usr/bin/rr /usr/bin/rr
 
@@ -172,5 +175,4 @@ ENV LOG_CHANNEL "errorlog"
 ENV DB_HOST "mysql"
 ENV REDIS_HOST "redis"
 ENV MONGODB_HOST "mongo"
-ENV DUSK_DRIVER_URL "localhost:9515"
 
