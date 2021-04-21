@@ -40,7 +40,7 @@ RUN mkdir /tmp/library-scripts \
     && curl -sSL $COPY_KUBE_CONFIG_SCRIPT_SOURCE -o /usr/local/share/copy-kube-config.sh
 
 # Install needed packages and setup non-root user. Use a separate RUN statement to add your own dependencies.
-RUN apt-get update \
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && /bin/bash /tmp/library-scripts/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" \
     # Use Docker script from script library to set things up
     && /bin/bash /tmp/library-scripts/docker-debian.sh "${ENABLE_NONROOT_DOCKER}" "${SOURCE_SOCKET}" "${TARGET_SOCKET}" "${USERNAME}" \
@@ -74,7 +74,8 @@ ENV OPCACHE_VALIDATE_TIMESTAMPS ${OPCACHE_VALIDATE_TIMESTAMPS}
 
 ENV COMPOSER_ALLOW_SUPERUSER 1
 
-RUN apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
     libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev libgmp-dev \
     && docker-php-source extract \
     && docker-php-ext-configure zip --with-zip \
@@ -128,7 +129,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
     && curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
     && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
-    && apt-get update \
+    && apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends nodejs yarn \
     # Chrome for Puppeteer
     && apt-get -y install --no-install-recommends \
