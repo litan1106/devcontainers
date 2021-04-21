@@ -59,22 +59,18 @@ ENV NPM_CONFIG_PREFIX=/opt/.npm-global
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    #
     # Python
     && apt-get -y install --no-install-recommends python3 python3-dev python3-pip python3-venv \
     && python3 -m pip install --upgrade pip setuptools supervisor \
-    #
     # Util Libs
     && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
     libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev \
-    #
     # Nodejs and Yarn
     && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
     && curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
     && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
     && apt-get update \
     && apt-get -y install --no-install-recommends nodejs yarn \
-    #
     # Chrome for Puppeteer
     && apt-get -y install --no-install-recommends \
     chromium \
@@ -84,7 +80,6 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     # DotNet Home
     && mkdir -p ${DOTNET_CLI_HOME} \
     && chown ${USERNAME}:root ${DOTNET_CLI_HOME} \
-    #
     # Clean up
     && apt-get autoremove -y \
     && apt-get clean -y \
@@ -92,6 +87,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 
 # Install npm puppeteer
 USER $USERNAME
+
 RUN npm install --global puppeteer
 
 # Create symlink to /usr/bin and /usr/lib
@@ -100,4 +96,6 @@ RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /opt/.npm-global/lib/node_modules/puppeteer /usr/lib/node_modules/puppeteer \
     && ln -s /usr/bin/chromium /usr/bin/google-chrome
 
-WORKDIR /workspace
+ARG WORK_DIR="/workspace"
+
+WORKDIR ${WORK_DIR}

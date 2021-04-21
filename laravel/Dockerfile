@@ -1,10 +1,20 @@
-# -------------------------------------------- Build Time Arguments ------------------------------------------------
-ARG VARIANT=8.0-cli
+# ----------------------------------------------- Build Time Arguments ---------------------------------------------
+ARG VARIANT="8.0-cli"
+ARG COMPOSER_VERSION="2.0"
+ARG ROADRUNNER_VERSION="2.0.4"
+
+# ------------------------------------------------- Composer Image -------------------------------------------------
+FROM composer:${COMPOSER_VERSION} as composer
+
+# ------------------------------------------------- RoadRunner Image -----------------------------------------------
+FROM spiralscout/roadrunner:${ROADRUNNER_VERSION} as roadrunner
 
 # ==================================================================================================================
-#                                                  --- PHP ---
+#                                                  --- BASE PHP ---
 # ==================================================================================================================
 FROM php:${VARIANT}
+
+# ------------------------------------------------ VsCode Setup --------------------------------------------------
 
 # Options
 ARG INSTALL_ZSH="true"
@@ -50,9 +60,9 @@ RUN curl -s https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-
 RUN chown ${USERNAME}:root /usr/local/share/copy-kube-config.sh \
     && echo "source /usr/local/share/copy-kube-config.sh" | tee -a /root/.bashrc /root/.zshrc /home/${USERNAME}/.bashrc >> /home/${USERNAME}/.zshrc
 
-# PHP Extensions
-ARG PECL_PHP_DEP_VERSIONS="igbinary-3.1.6 msgpack-2.1.2 mongodb-1.9.0"
-ARG PECL_PHP_DEPS="igbinary msgpack mongodb"
+# ------------------------------------------------ Extensions --------------------------------------------------
+ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.2 msgpack-2.1.2 mongodb-1.9.1 xdebug-3.0.4"
+ARG PECL_PHP_DEPS="igbinary msgpack mongodb xdebug"
 
 ARG PHP_MEMORY_LIMIT="4096M"
 ARG OPCACHE_ENABLE=1
@@ -62,10 +72,27 @@ ENV PHP_MEMORY_LIMIT ${PHP_MEMORY_LIMIT}
 ENV OPCACHE_ENABLE ${OPCACHE_ENABLE}
 ENV OPCACHE_VALIDATE_TIMESTAMPS ${OPCACHE_VALIDATE_TIMESTAMPS}
 
-# Composer
 ENV COMPOSER_ALLOW_SUPERUSER 1
 
-# Supervisor
+RUN apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
+    libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev libgmp-dev \
+    && docker-php-source extract \
+    && docker-php-ext-configure zip --with-zip \
+    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
+    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
+    && pecl install ${PECL_PHP_DEP_VERSIONS} > /dev/null \
+    && docker-php-ext-enable ${PECL_PHP_DEPS} \
+    && pecl bundle redis && cd redis \
+    && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack \
+    && make && make install \
+    && docker-php-ext-enable redis \
+    && docker-php-source delete \
+    # Setup php.ini
+    && mv ${PHP_INI_DIR}/php.ini-development ${PHP_INI_DIR}/php.ini
+
+# ==================================================================================================================
+#                                                  --- SUPERVISOR ---
+# ==================================================================================================================
 ARG SUPERVISOR_USERNAME="supervisor"
 ARG SUPERVISOR_PASSWORD="supervisor"
 
@@ -76,12 +103,7 @@ ENV SUPERVISOR_PASSWORD ${SUPERVISOR_PASSWORD}
 ENV NPM_CONFIG_PREFIX=/opt/.npm-global
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
-ENV ROADRUNNER_VERSION="2.0.4"
-
-COPY --from=composer /usr/bin/composer /usr/bin/composer
-
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    #
     # Python
     && apt-get -y install --no-install-recommends python3 python3-dev python3-pip python3-venv nginx redis-tools \
     && python3 -m pip install --upgrade pip setuptools supervisor \
@@ -99,48 +121,21 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && chmod -R g+w /var/cache/nginx \
     && chown -R $USERNAME:root /etc/nginx \
     && chmod -R g+w /etc/nginx \
-    #
-    # PHP Extensions
-    && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
-    libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev libgmp-dev \
-    && docker-php-source extract \
-    && docker-php-ext-configure zip --with-zip \
-    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
-    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
-    && pecl install ${PECL_PHP_DEP_VERSIONS} > /dev/null \
-    && docker-php-ext-enable ${PECL_PHP_DEPS} \
-    && pecl bundle redis && cd redis \
-    && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack && make && make install \
-    && docker-php-ext-enable redis \
-    && pecl install xdebug > /dev/null \
-    && docker-php-ext-enable xdebug \
-    && docker-php-source delete \
-    #
-    # Setup php.ini
-    && mv ${PHP_INI_DIR}/php.ini-development ${PHP_INI_DIR}/php.ini \
     && rm -rf /var/www/* \
     && rm -rf /etc/nginx/conf.d/* \
     && rm -rf /etc/nginx/conf.d/* \
-    #
     # Nodejs and Yarn
     && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
     && curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
     && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
     && apt-get update \
     && apt-get -y install --no-install-recommends nodejs yarn \
-    #
     # Chrome for Puppeteer
     && apt-get -y install --no-install-recommends \
     chromium \
     fonts-freefont-ttf \
     && mkdir -p /opt/.npm-global \
     && chmod -R 777 /opt/.npm-global \
-    #
-    # Roadrunner
-    && curl -sL https://github.com/spiral/roadrunner-binary/releases/download/v${ROADRUNNER_VERSION}/roadrunner-${ROADRUNNER_VERSION}-linux-amd64.tar.gz -o /tmp/roadrunner.tar.gz \
-    && tar -xf /tmp/roadrunner.tar.gz -C /usr/bin --strip-components=1 \
-    && rm -rf /tmp/roadrunner.tar.gz \
-    #
     # Clean up
     && apt-get autoremove -y \
     && apt-get clean -y \
@@ -159,9 +154,14 @@ RUN mkdir -p /usr/lib/node_modules/ \
 
 COPY xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
-# LARAVEL
-WORKDIR /workspace
+COPY --from=composer /usr/bin/composer /usr/bin/composer
+COPY --from=roadrunner /usr/bin/rr /usr/bin/rr
 
+ARG WORK_DIR="/workspace"
+
+WORKDIR ${WORK_DIR}
+
+# LARAVEL
 ENV APP_URL "http://localhost"
 ENV APP_ENV "local"
 ENV APP_DEBUG true

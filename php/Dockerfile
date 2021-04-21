@@ -51,9 +51,9 @@ RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
     && make && make install \
     && docker-php-ext-enable redis \
     && docker-php-source delete \
-    && apk del -f .build-ext-deps
-
-RUN mv ${PHP_INI_DIR}/php.ini-production ${PHP_INI_DIR}/php.ini \
+    && apk del -f .build-ext-deps \
+    # Setup php.ini
+    && mv ${PHP_INI_DIR}/php.ini-production ${PHP_INI_DIR}/php.ini \
     && rm -rf /var/www/* /usr/local/etc/php-fpm.d/*
 
 # ==================================================================================================================
