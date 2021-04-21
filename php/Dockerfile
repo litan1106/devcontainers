@@ -54,7 +54,11 @@ RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
     && apk del -f .build-ext-deps \
     # Setup php.ini
     && mv ${PHP_INI_DIR}/php.ini-production ${PHP_INI_DIR}/php.ini \
-    && rm -rf /var/www/* /usr/local/etc/php-fpm.d/*
+    && rm -rf /var/www/* /usr/local/etc/php-fpm.d/* \
+    && echo "zend_extension=xdebug.so" > ${PHP_INI_DIR}/docker-php-ext-xdebug.ini \
+    && echo "xdebug.mode=off" >> ${PHP_INI_DIR}/docker-php-ext-xdebug.ini \
+    && echo "xdebug.start_with_request=yes" >> ${PHP_INI_DIR}/docker-php-ext-xdebug.ini \
+    && echo "xdebug.client_port=9003" >> ${PHP_INI_DIR}/docker-php-ext-xdebug.ini
 
 # ==================================================================================================================
 #                                                  --- SUPERVISOR ---

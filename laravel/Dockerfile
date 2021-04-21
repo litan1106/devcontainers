@@ -89,7 +89,11 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && docker-php-ext-enable redis \
     && docker-php-source delete \
     # Setup php.ini
-    && mv ${PHP_INI_DIR}/php.ini-development ${PHP_INI_DIR}/php.ini
+    && mv ${PHP_INI_DIR}/php.ini-development ${PHP_INI_DIR}/php.ini \
+    && echo "zend_extension=xdebug.so" > ${PHP_INI_DIR}/docker-php-ext-xdebug.ini \
+    && echo "xdebug.mode=off" >> ${PHP_INI_DIR}/docker-php-ext-xdebug.ini \
+    && echo "xdebug.start_with_request=yes" >> ${PHP_INI_DIR}/docker-php-ext-xdebug.ini \
+    && echo "xdebug.client_port=9003" >> ${PHP_INI_DIR}/docker-php-ext-xdebug.ini
 
 # ==================================================================================================================
 #                                                  --- SUPERVISOR ---
@@ -152,8 +156,6 @@ USER root
 RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /opt/.npm-global/lib/node_modules/puppeteer /usr/lib/node_modules/puppeteer \
     && ln -s /usr/bin/chromium /usr/bin/google-chrome
-
-COPY xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 COPY --from=roadrunner /usr/bin/rr /usr/bin/rr
