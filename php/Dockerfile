@@ -18,8 +18,8 @@ ARG WORK_DIR="/var/www/app"
 
 WORKDIR ${WORK_DIR}
 
-ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.2 msgpack-2.1.2 mongodb-1.9.1 xdebug-3.0.4"
-ARG PECL_PHP_DEPS="igbinary msgpack mongodb xdebug"
+ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.2 msgpack-2.1.2 mongodb-1.9.1 xdebug-3.0.4 swoole-4.6.6"
+ARG PECL_PHP_DEPS="igbinary msgpack mongodb xdebug swoole"
 
 ARG PHP_MEMORY_LIMIT="4096M"
 ARG OPCACHE_ENABLE=1
@@ -32,7 +32,7 @@ ENV OPCACHE_VALIDATE_TIMESTAMPS ${OPCACHE_VALIDATE_TIMESTAMPS}
 ENV COMPOSER_ALLOW_SUPERUSER 1
 ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
 
-RUN apk add --no-cache curl bash nano \
+RUN apk add --no-cache curl bash nano gettext \
     unzip zip libzip libxml2 libxslt \
     # Fix Iconv
     gnu-libiconv
@@ -194,6 +194,7 @@ RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
     # Setup php.ini
     && mv ${PHP_INI_DIR}/php.ini-production ${PHP_INI_DIR}/php.ini \
     && rm -rf /var/www/* /usr/local/etc/php-fpm.d/* \
+    && sed -i "s/memory_limit = .*/memory_limit = 1028M/" ${PHP_INI_DIR}/php.ini \
     && echo "xdebug.mode=off" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
     && echo "xdebug.start_with_request=yes" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
     && echo "xdebug.client_port=9003" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini

@@ -75,7 +75,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     # Python
-    && apt-get -y install --no-install-recommends python3 python3-dev python3-pip python3-venv nginx redis-tools \
+    && apt-get -y install --no-install-recommends python3 python3-dev python3-pip python3-venv gettext-base nginx redis-tools \
     && python3 -m pip install --upgrade pip setuptools supervisor \
     # Nginx as an unprivileged user
     && ln -sf /dev/stdout /var/log/nginx/access.log \
@@ -123,8 +123,8 @@ RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /usr/bin/chromium /usr/bin/google-chrome
 
 # ------------------------------------------------ Extensions --------------------------------------------------
-ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.2 msgpack-2.1.2 mongodb-1.9.1 xdebug-3.0.4"
-ARG PECL_PHP_DEPS="igbinary msgpack mongodb xdebug"
+ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.2 msgpack-2.1.2 mongodb-1.9.1 xdebug-3.0.4 swoole-4.6.6"
+ARG PECL_PHP_DEPS="igbinary msgpack mongodb xdebug swoole"
 
 ARG PHP_MEMORY_LIMIT="4096M"
 ARG OPCACHE_ENABLE=1
@@ -152,6 +152,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && docker-php-source delete \
     # Setup php.ini
     && mv ${PHP_INI_DIR}/php.ini-development ${PHP_INI_DIR}/php.ini \
+    && sed -i "s/memory_limit = .*/memory_limit = 1028M/" ${PHP_INI_DIR}/php.ini \
     && echo "xdebug.mode=off" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
     && echo "xdebug.start_with_request=yes" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
     && echo "xdebug.client_port=9003" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
