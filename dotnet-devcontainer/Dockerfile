@@ -22,7 +22,7 @@ ARG USER_GID=$USER_UID
 
 # Script locations
 ARG COMMON_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/master/script-library/common-debian.sh"
-ARG DOCKER_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/master/script-library/docker-debian.sh"
+ARG DOCKER_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/master/script-library/docker-in-docker-debian.sh"
 ARG AZURE_CLI_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/master/script-library/azcli-debian.sh"
 ARG COPY_KUBE_CONFIG_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/master/containers/kubernetes-helm/.devcontainer/copy-kube-config.sh"
 
@@ -94,8 +94,8 @@ USER $USERNAME
 
 RUN npm install --global puppeteer
 
-# Create symlink to /usr/bin and /usr/lib
 USER root
+# Create symlink to /usr/bin and /usr/lib
 RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /opt/.npm-global/lib/node_modules/puppeteer /usr/lib/node_modules/puppeteer \
     && ln -s /usr/bin/chromium /usr/bin/google-chrome
