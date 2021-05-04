@@ -6,9 +6,45 @@ ARG VARIANT=5.0
 # ==================================================================================================================
 FROM mcr.microsoft.com/dotnet/sdk:${VARIANT}
 
-ARG WORK_DIR="/workspace"
+# ----------------------------------------------------- Chromium -------------------------------------------------------
+ENV NPM_CONFIG_PREFIX=/opt/.npm-global
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
-WORKDIR ${WORK_DIR}
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    # Nodejs and Yarn
+    && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
+    && curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
+    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
+    && apt-get update \
+    && apt-get -y install --no-install-recommends nodejs yarn \
+    # Chrome for Puppeteer
+    && apt-get -y install --no-install-recommends \
+    chromium \
+    fonts-freefont-ttf \
+    && mkdir -p /opt/.npm-global \
+    && chmod -R 777 /opt/.npm-global \
+    # Util Libs
+    && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
+    libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev \
+    # DotNet Home
+    && mkdir -p ${DOTNET_CLI_HOME} \
+    && chown ${USERNAME}:root ${DOTNET_CLI_HOME} \
+    # Clean up
+    && apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
+
+USER $USERNAME
+
+RUN npm install --global puppeteer
+
+USER root
+# Create symlink to /usr/bin and /usr/lib
+RUN mkdir -p /usr/lib/node_modules/ \
+    && ln -s /opt/.npm-global/lib/node_modules/puppeteer /usr/lib/node_modules/puppeteer \
+    && ln -s /usr/bin/chromium /usr/bin/google-chrome
+
+# ------------------------------------------------ VsCode Setup --------------------------------------------------
 
 # Options
 ARG INSTALL_ZSH="true"
@@ -58,44 +94,6 @@ RUN curl -s https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-
 RUN chown ${USERNAME}:root /usr/local/share/copy-kube-config.sh \
     && echo "source /usr/local/share/copy-kube-config.sh" | tee -a /root/.bashrc /root/.zshrc /home/${USERNAME}/.bashrc >> /home/${USERNAME}/.zshrc
 
-# Puppeteer
-ENV NPM_CONFIG_PREFIX=/opt/.npm-global
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
+ARG WORK_DIR="/workspace"
 
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    # Python
-    && apt-get -y install --no-install-recommends python3 python3-dev python3-pip python3-venv \
-    && python3 -m pip install --upgrade pip setuptools supervisor \
-    # Util Libs
-    && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
-    libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev \
-    # Nodejs and Yarn
-    && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
-    && curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
-    && apt-get update \
-    && apt-get -y install --no-install-recommends nodejs yarn \
-    # Chrome for Puppeteer
-    && apt-get -y install --no-install-recommends \
-    chromium \
-    fonts-freefont-ttf \
-    && mkdir -p /opt/.npm-global \
-    && chmod -R 777 /opt/.npm-global \
-    # DotNet Home
-    && mkdir -p ${DOTNET_CLI_HOME} \
-    && chown ${USERNAME}:root ${DOTNET_CLI_HOME} \
-    # Clean up
-    && apt-get autoremove -y \
-    && apt-get clean -y \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install npm puppeteer
-USER $USERNAME
-
-RUN npm install --global puppeteer
-
-USER root
-# Create symlink to /usr/bin and /usr/lib
-RUN mkdir -p /usr/lib/node_modules/ \
-    && ln -s /opt/.npm-global/lib/node_modules/puppeteer /usr/lib/node_modules/puppeteer \
-    && ln -s /usr/bin/chromium /usr/bin/google-chrome
+WORKDIR ${WORK_DIR}

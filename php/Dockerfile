@@ -17,29 +17,6 @@ FROM litan1106/golang-supervisord as supervisord
 # ==================================================================================================================
 FROM php:${VARIANT}
 
-ARG WORK_DIR="/var/www/app"
-
-WORKDIR ${WORK_DIR}
-
-ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.2 msgpack-2.1.2 mongodb-1.9.1 xdebug-3.0.4 swoole-4.6.6"
-ARG PECL_PHP_DEPS="igbinary msgpack mongodb xdebug swoole"
-
-ARG PHP_MEMORY_LIMIT="4096M"
-ARG OPCACHE_ENABLE=1
-ARG OPCACHE_VALIDATE_TIMESTAMPS=0
-
-ENV PHP_MEMORY_LIMIT ${PHP_MEMORY_LIMIT}
-ENV OPCACHE_ENABLE ${OPCACHE_ENABLE}
-ENV OPCACHE_VALIDATE_TIMESTAMPS ${OPCACHE_VALIDATE_TIMESTAMPS}
-
-ENV COMPOSER_ALLOW_SUPERUSER 1
-ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
-
-RUN apk add --no-cache curl bash nano gettext \
-    unzip zip libzip libxml2 libxslt \
-    # Fix Iconv
-    gnu-libiconv
-
 # ----------------------------------------------------- Node.js ----------------------------------------------------
 ENV NODE_VERSION 14.16.1
 
@@ -164,7 +141,25 @@ RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /usr/local/bin/yarn /usr/bin/yarn
 
 # ------------------------------------------------ Extensions --------------------------------------------------
-RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
+ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.2 msgpack-2.1.2 mongodb-1.9.1 xdebug-3.0.4 swoole-4.6.6"
+ARG PECL_PHP_DEPS="igbinary msgpack mongodb xdebug swoole"
+
+ARG PHP_MEMORY_LIMIT="4096M"
+ARG OPCACHE_ENABLE=1
+ARG OPCACHE_VALIDATE_TIMESTAMPS=0
+
+ENV PHP_MEMORY_LIMIT ${PHP_MEMORY_LIMIT}
+ENV OPCACHE_ENABLE ${OPCACHE_ENABLE}
+ENV OPCACHE_VALIDATE_TIMESTAMPS ${OPCACHE_VALIDATE_TIMESTAMPS}
+
+ENV COMPOSER_ALLOW_SUPERUSER 1
+ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
+
+RUN apk add --no-cache curl bash nano gettext \
+    unzip zip libzip libxml2 libxslt \
+    # Fix Iconv
+    gnu-libiconv \
+    && apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
     openssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt-dev gmp-dev \
     && docker-php-source extract \
     && docker-php-ext-configure zip --with-zip \
@@ -189,9 +184,7 @@ RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 COPY --from=roadrunner /usr/bin/rr /usr/bin/rr
 
-# ==================================================================================================================
-#                                                  --- SUPERVISOR ---
-# ==================================================================================================================
+# ------------------------------------------------ Supervisord --------------------------------------------------
 ARG SUPERVISOR_USERNAME="supervisor"
 ARG SUPERVISOR_PASSWORD="supervisor"
 
@@ -199,3 +192,7 @@ ENV SUPERVISOR_USERNAME ${SUPERVISOR_USERNAME}
 ENV SUPERVISOR_PASSWORD ${SUPERVISOR_PASSWORD}
 
 COPY --from=supervisord /usr/bin/supervisord /usr/bin/supervisord
+
+ARG WORK_DIR="/var/www/app"
+
+WORKDIR ${WORK_DIR}

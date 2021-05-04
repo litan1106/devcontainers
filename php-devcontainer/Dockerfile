@@ -17,41 +17,16 @@ FROM litan1106/golang-supervisord as supervisord
 # ==================================================================================================================
 FROM php:${VARIANT}
 
-
-ARG WORK_DIR="/workspace"
-
-WORKDIR ${WORK_DIR}
-
-# Puppeteer
+# ----------------------------------------------------- Chromium -------------------------------------------------------
 ENV NPM_CONFIG_PREFIX=/opt/.npm-global
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    # Python
-    && apt-get -y install --no-install-recommends python3 python3-dev python3-pip python3-venv gettext-base nginx redis-tools \
-    && python3 -m pip install --upgrade pip setuptools supervisor \
-    # Nginx as an unprivileged user
-    && ln -sf /dev/stdout /var/log/nginx/access.log \
-    && ln -sf /dev/stderr /var/log/nginx/error.log \
-    && rm -rf /etc/nginx/sites-enabled/ \
-    && mkdir -p /var/cache/nginx \
-    && echo 'daemon off;' >> /etc/nginx/nginx.conf \
-    && sed -i '/user www-data;/d' /etc/nginx/nginx.conf \
-    && sed -i 's,/run/nginx.pid,/tmp/nginx.pid,' /etc/nginx/nginx.conf \
-    && sed -i 's,768;,1024;,' /etc/nginx/nginx.conf \
-    && sed -i "/^http {/a \    proxy_temp_path /tmp/proxy_temp;\n    client_body_temp_path /tmp/client_temp;\n    fastcgi_temp_path /tmp/fastcgi_temp;\n    uwsgi_temp_path /tmp/uwsgi_temp;\n    scgi_temp_path /tmp/scgi_temp;\n" /etc/nginx/nginx.conf \
-    && chown -R $USERNAME:root /var/cache/nginx \
-    && chmod -R g+w /var/cache/nginx \
-    && chown -R $USERNAME:root /etc/nginx \
-    && chmod -R g+w /etc/nginx \
-    && rm -rf /var/www/* \
-    && rm -rf /etc/nginx/conf.d/* \
-    && rm -rf /etc/nginx/conf.d/* \
     # Nodejs and Yarn
     && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
     && curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
     && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
-    && apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update \
     && apt-get -y install --no-install-recommends nodejs yarn \
     # Chrome for Puppeteer
     && apt-get -y install --no-install-recommends \
@@ -64,7 +39,6 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Install npm puppeteer
 USER $USERNAME
 
 RUN npm install --global puppeteer
@@ -117,9 +91,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 COPY --from=roadrunner /usr/bin/rr /usr/bin/rr
 
-# ==================================================================================================================
-#                                                  --- SUPERVISOR ---
-# ==================================================================================================================
+# ------------------------------------------------ Supervisord --------------------------------------------------
 ARG SUPERVISOR_USERNAME="supervisor"
 ARG SUPERVISOR_PASSWORD="supervisor"
 
@@ -159,6 +131,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     # Use Docker script from script library to set things up
     && /bin/bash /tmp/library-scripts/docker-debian.sh "${ENABLE_NONROOT_DOCKER}" "${SOURCE_SOCKET}" "${TARGET_SOCKET}" "${USERNAME}" \
     && /bin/bash /tmp/library-scripts/azcli-debian.sh \
+    # Tools
+    && apt-get -y install --no-install-recommends  gettext-base redis-tools \
     # Clean up
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts/
 
@@ -173,3 +147,7 @@ RUN curl -s https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-
 # localhost for host.docker.internal on bash/zsh start to keep them in sync.
 RUN chown ${USERNAME}:root /usr/local/share/copy-kube-config.sh \
     && echo "source /usr/local/share/copy-kube-config.sh" | tee -a /root/.bashrc /root/.zshrc /home/${USERNAME}/.bashrc >> /home/${USERNAME}/.zshrc
+
+ARG WORK_DIR="/workspace"
+
+WORKDIR ${WORK_DIR}
