@@ -9,6 +9,9 @@ FROM composer:${COMPOSER_VERSION} as composer
 # ------------------------------------------------- RoadRunner Image -----------------------------------------------
 FROM spiralscout/roadrunner:${ROADRUNNER_VERSION} as roadrunner
 
+# ------------------------------------------------- Supervisord Image -----------------------------------------------
+FROM litan1106/golang-supervisord as supervisord
+
 # ==================================================================================================================
 #                                                  --- BASE PHP ---
 # ==================================================================================================================
@@ -36,22 +39,6 @@ RUN apk add --no-cache curl bash nano gettext \
     unzip zip libzip libxml2 libxslt \
     # Fix Iconv
     gnu-libiconv
-
-# ==================================================================================================================
-#                                                  --- SUPERVISOR ---
-# ==================================================================================================================
-ARG SUPERVISOR_USERNAME="supervisor"
-ARG SUPERVISOR_PASSWORD="supervisor"
-
-ENV SUPERVISOR_USERNAME ${SUPERVISOR_USERNAME}
-ENV SUPERVISOR_PASSWORD ${SUPERVISOR_PASSWORD}
-
-# ----------------------------------------------------- Python -----------------------------------------------------
-RUN apk add --no-cache python3 \
-    && apk add --no-cache --virtual .build-deps build-base python3-dev py3-pip \
-    && python3 -m pip install --upgrade pip setuptools \
-    && python3 -m pip install supervisor \
-    && apk del .build-deps
 
 # ----------------------------------------------------- Node.js ----------------------------------------------------
 ENV NODE_VERSION 14.16.1
@@ -201,3 +188,14 @@ RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
 
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 COPY --from=roadrunner /usr/bin/rr /usr/bin/rr
+
+# ==================================================================================================================
+#                                                  --- SUPERVISOR ---
+# ==================================================================================================================
+ARG SUPERVISOR_USERNAME="supervisor"
+ARG SUPERVISOR_PASSWORD="supervisor"
+
+ENV SUPERVISOR_USERNAME ${SUPERVISOR_USERNAME}
+ENV SUPERVISOR_PASSWORD ${SUPERVISOR_PASSWORD}
+
+COPY --from=supervisord /usr/bin/supervisord /usr/bin/supervisord
