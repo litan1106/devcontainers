@@ -26,9 +26,6 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     # Util Libs
     && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
     libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev \
-    # DotNet Home
-    && mkdir -p ${DOTNET_CLI_HOME} \
-    && chown ${USERNAME}:root ${DOTNET_CLI_HOME} \
     # Clean up
     && apt-get autoremove -y \
     && apt-get clean -y \
@@ -79,6 +76,9 @@ RUN apt-get update \
     && /bin/bash /tmp/library-scripts/azcli-debian.sh \
     # For VisualStudioCodeCredential
     && apt-get -y install --no-install-recommends libsecret-1-dev \
+    # DotNet Home
+    && mkdir -p ${DOTNET_CLI_HOME} \
+    && chown ${USERNAME}:root ${DOTNET_CLI_HOME} \
     # Clean up
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts/
 
