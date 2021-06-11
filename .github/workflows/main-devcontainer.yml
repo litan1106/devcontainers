@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron:  '* 8 8 * *'
+    - cron:  '* 9 8 * *'
   workflow_dispatch:
 
 jobs:
@@ -32,27 +32,13 @@ jobs:
         name: Build and push php
         uses: docker/build-push-action@v2
         with:
-          context: php
+          context: php-devcontainer
           push: true
-          tags: litan1106/php:latest
+          tags: litan1106/php-devcontainer:latest
       -
-        name: Build and push go-supervisord
+        name: Build and push dotnet
         uses: docker/build-push-action@v2
         with:
-          context: golang-supervisord
+          context: dotnet-devcontainer
           push: true
-          tags: litan1106/golang-supervisord:latest
-      -
-        name: Build and push go-mailhog
-        uses: docker/build-push-action@v2
-        with:
-          context: mailhog
-          push: true
-          tags: litan1106/mailhog:latest
-      -
-        name: Build and push node-websocket
-        uses: docker/build-push-action@v2
-        with:
-          context: websocket
-          push: true
-          tags: litan1106/websocket:latest
+          tags: litan1106/dotnet-core-devcontainer:latest
