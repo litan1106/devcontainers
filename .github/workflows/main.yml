@@ -36,6 +36,13 @@ jobs:
           push: true
           tags: litan1106/php:latest
       -
+        name: Build and push deployer
+        uses: docker/build-push-action@v2
+        with:
+          context: deployer
+          push: true
+          tags: litan1106/deployer:latest
+      -
         name: Build and push go-supervisord
         uses: docker/build-push-action@v2
         with:
