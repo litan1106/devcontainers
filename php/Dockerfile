@@ -1,5 +1,5 @@
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
-ARG VARIANT="8.0-fpm-alpine"
+ARG VARIANT="8.0-fpm-alpine3.13"
 ARG COMPOSER_VERSION="2.0"
 ARG ROADRUNNER_VERSION="2.3.1"
 
