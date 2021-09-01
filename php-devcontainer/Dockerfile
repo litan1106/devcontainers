@@ -50,8 +50,8 @@ RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /usr/bin/chromium /usr/bin/google-chrome
 
 # ------------------------------------------------ Extensions --------------------------------------------------
-ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.4 msgpack-2.1.2 mongodb-1.9.1 protobuf-3.17.3 grpc-1.38.0 xdebug-3.0.4"
-ARG PECL_PHP_DEPS="igbinary msgpack mongodb protobuf grpc xdebug"
+ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.6 msgpack-2.1.2 mongodb-1.9.2 xdebug-3.0.4"
+ARG PECL_PHP_DEPS="igbinary msgpack mongodb xdebug"
 
 ARG PHP_MEMORY_LIMIT="4096M"
 ARG OPCACHE_ENABLE=1
