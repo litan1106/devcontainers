@@ -17,9 +17,12 @@ FROM litan1106/golang-supervisord as supervisord
 # ==================================================================================================================
 FROM php:${VARIANT} as php-ext
 
-ARG PECL_PKGS="igbinary-3.2.6 msgpack-2.1.2 mongodb-1.10.0 protobuf-3.17.3 grpc-1.39.0 xdebug-3.0.4"
-ARG PECL_PKGS_TAR="igbinary-3.2.6.tgz msgpack-2.1.2.tgz mongodb-1.10.0.tgz protobuf-3.17.3.tgz grpc-1.39.0.tgz xdebug-3.0.4.tgz"
+ARG PECL_PKGS="igbinary-3.2.6.tgz msgpack-2.1.2.tgz mongodb-1.10.0.tgz protobuf-3.17.3.tgz grpc-1.39.0.tgz xdebug-3.0.4.tgz"
 ARG PECL_PKGS_ENABLE="igbinary msgpack mongodb protobuf grpc xdebug"
+
+WORKDIR /pecl
+
+COPY --from=litan1106/php-pecl:latest /pecl/ /pecl/
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev libgmp-dev \
@@ -27,9 +30,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && docker-php-ext-configure zip --with-zip \
     && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
     bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
-    && pecl channel-update pecl.php.net \
-    && pecl download ${PECL_PKGS} \
-    && pecl install ${PECL_PKGS_TAR} > /dev/null \
+    && pecl install ${PECL_PKGS} > /dev/null \
     && docker-php-ext-enable ${PECL_PKGS_ENABLE} \
     && pecl bundle redis && cd redis \
     && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack \

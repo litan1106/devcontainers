@@ -29,19 +29,19 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
+        name: Build and push php pecl
+        uses: docker/build-push-action@v2
+        with:
+          context: php-pecl
+          push: true
+          tags: litan1106/php-pecl:latest
+      -
         name: Build and push php
         uses: docker/build-push-action@v2
         with:
           context: php
           push: true
           tags: litan1106/php:latest
-      -
-        name: Build and push deployer
-        uses: docker/build-push-action@v2
-        with:
-          context: deployer
-          push: true
-          tags: litan1106/deployer:latest
       -
         name: Build and push go-supervisord
         uses: docker/build-push-action@v2
