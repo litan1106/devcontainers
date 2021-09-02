@@ -50,8 +50,8 @@ RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /usr/bin/chromium /usr/bin/google-chrome
 
 # ------------------------------------------------ Extensions --------------------------------------------------
-ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.6 msgpack-2.1.2 mongodb-1.9.2 xdebug-3.0.4"
-ARG PECL_PHP_DEPS="igbinary msgpack mongodb xdebug"
+ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.6 msgpack-2.1.2 mongodb-1.10.0 protobuf-3.17.3 grpc-1.39.0 xdebug-3.0.4"
+ARG PECL_PHP_DEPS="igbinary msgpack mongodb protobuf grpc xdebug"
 
 ARG PHP_MEMORY_LIMIT="4096M"
 ARG OPCACHE_ENABLE=1
@@ -70,6 +70,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && docker-php-ext-configure zip --with-zip \
     && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
     bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
+    && pecl channel-update pecl.php.net \
     && pecl install ${PECL_PHP_DEP_VERSIONS} > /dev/null \
     && docker-php-ext-enable ${PECL_PHP_DEPS} \
     && pecl bundle redis && cd redis \
