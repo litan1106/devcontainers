@@ -1,5 +1,5 @@
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
-ARG VARIANT="8.0-fpm"
+ARG VARIANT="8.0-cli"
 ARG COMPOSER_VERSION="2.0"
 ARG ROADRUNNER_VERSION="2.3.3"
 
@@ -13,25 +13,70 @@ FROM spiralscout/roadrunner:${ROADRUNNER_VERSION} as roadrunner
 FROM litan1106/golang-supervisord as supervisord
 
 # ==================================================================================================================
+#                                                --- PHP EXTENIONS ---
+# ==================================================================================================================
+FROM php:${VARIANT} as php-ext
+
+ARG PECL_PKGS="igbinary-3.2.6 msgpack-2.1.2 mongodb-1.10.0 protobuf-3.17.3 grpc-1.39.0 xdebug-3.0.4"
+ARG PECL_PKGS_TAR="igbinary-3.2.6.tgz msgpack-2.1.2.tgz mongodb-1.10.0.tgz protobuf-3.17.3.tgz grpc-1.39.0.tgz xdebug-3.0.4.tgz"
+ARG PECL_PKGS_ENABLE="igbinary msgpack mongodb protobuf grpc xdebug"
+
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev libgmp-dev \
+    && docker-php-source extract \
+    && docker-php-ext-configure zip --with-zip \
+    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
+    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
+    && pecl channel-update pecl.php.net \
+    && pecl download ${PECL_PKGS} \
+    && pecl install ${PECL_PKGS_TAR} > /dev/null \
+    && docker-php-ext-enable ${PECL_PKGS_ENABLE} \
+    && pecl bundle redis && cd redis \
+    && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack \
+    && make && make install \
+    && docker-php-ext-enable redis \
+    && docker-php-source delete \
+    # Setup php.ini
+    && mv ${PHP_INI_DIR}/php.ini-development ${PHP_INI_DIR}/php.ini \
+    && sed -i "s/memory_limit = .*/memory_limit = 1028M/" ${PHP_INI_DIR}/php.ini \
+    && echo "xdebug.mode=off" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.start_with_request=yes" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.client_port=9003" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
+    # Clean up
+    && apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# ==================================================================================================================
 #                                                  --- BASE PHP ---
 # ==================================================================================================================
 FROM php:${VARIANT}
 
-# ----------------------------------------------------- Chromium -------------------------------------------------------
+ARG PHP_MEMORY_LIMIT="4096M"
+ARG OPCACHE_ENABLE=1
+ARG OPCACHE_VALIDATE_TIMESTAMPS=0
+
+ENV PHP_MEMORY_LIMIT ${PHP_MEMORY_LIMIT}
+ENV OPCACHE_ENABLE ${OPCACHE_ENABLE}
+ENV OPCACHE_VALIDATE_TIMESTAMPS ${OPCACHE_VALIDATE_TIMESTAMPS}
+ENV COMPOSER_ALLOW_SUPERUSER 1
+
 ENV NPM_CONFIG_PREFIX=/opt/.npm-global
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    # Nodejs and Yarn
+    # Required pkgs for Zip, SOAP and XML
+    && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
+    # Tools
+    gettext-base nano redis-tools \
+    # Nodejs and Yarn for Puppeteer and Websocket
     && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
     && curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
     && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
     && apt-get update \
     && apt-get -y install --no-install-recommends nodejs yarn \
     # Chrome for Puppeteer
-    && apt-get -y install --no-install-recommends \
-    chromium \
-    fonts-freefont-ttf \
+    && apt-get -y install --no-install-recommends chromium fonts-freefont-ttf \
     && mkdir -p /opt/.npm-global \
     && chmod -R 777 /opt/.npm-global \
     # Clean up
@@ -49,48 +94,15 @@ RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /opt/.npm-global/lib/node_modules/puppeteer /usr/lib/node_modules/puppeteer \
     && ln -s /usr/bin/chromium /usr/bin/google-chrome
 
-# ------------------------------------------------ Extensions --------------------------------------------------
-ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.6 msgpack-2.1.2 mongodb-1.10.0 protobuf-3.17.3 grpc-1.39.0 xdebug-3.0.4"
-ARG PECL_PHP_DEPS="igbinary msgpack mongodb protobuf grpc xdebug"
-
-ARG PHP_MEMORY_LIMIT="4096M"
-ARG OPCACHE_ENABLE=1
-ARG OPCACHE_VALIDATE_TIMESTAMPS=0
-
-ENV PHP_MEMORY_LIMIT ${PHP_MEMORY_LIMIT}
-ENV OPCACHE_ENABLE ${OPCACHE_ENABLE}
-ENV OPCACHE_VALIDATE_TIMESTAMPS ${OPCACHE_VALIDATE_TIMESTAMPS}
-
-ENV COMPOSER_ALLOW_SUPERUSER 1
-
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
-    libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev libgmp-dev \
-    && docker-php-source extract \
-    && docker-php-ext-configure zip --with-zip \
-    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
-    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
-    && pecl channel-update pecl.php.net \
-    && pecl install ${PECL_PHP_DEP_VERSIONS} > /dev/null \
-    && docker-php-ext-enable ${PECL_PHP_DEPS} \
-    && pecl bundle redis && cd redis \
-    && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack \
-    && make && make install \
-    && docker-php-ext-enable redis \
-    && docker-php-source delete \
-    # Setup php.ini
-    && mv ${PHP_INI_DIR}/php.ini-development ${PHP_INI_DIR}/php.ini \
-    && sed -i "s/memory_limit = .*/memory_limit = 1028M/" ${PHP_INI_DIR}/php.ini \
-    && echo "xdebug.mode=off" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
-    && echo "xdebug.start_with_request=yes" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
-    && echo "xdebug.client_port=9003" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
-    # Clean up
-    && apt-get autoremove -y \
-    && apt-get clean -y \
-    && rm -rf /var/lib/apt/lists/*
-
+# -------------------------------------------------- Composer ---------------------------------------------------
 COPY --from=composer /usr/bin/composer /usr/bin/composer
+# ------------------------------------------------- RoadRunner --------------------------------------------------
 COPY --from=roadrunner /usr/bin/rr /usr/bin/rr
+
+# ----------------------------------------------- PHP-Extensions ------------------------------------------------
+COPY --from=php-ext ${PHP_INI_DIR}/php.ini ${PHP_INI_DIR}/php.ini
+COPY --from=php-ext ${PHP_INI_DIR}/conf.d/ ${PHP_INI_DIR}/conf.d/
+COPY --from=php-ext /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 
 # ------------------------------------------------ Supervisord --------------------------------------------------
 ARG SUPERVISOR_USERNAME="supervisor"
@@ -102,7 +114,6 @@ ENV SUPERVISOR_PASSWORD ${SUPERVISOR_PASSWORD}
 COPY --from=supervisord /usr/bin/supervisord /usr/bin/supervisord
 
 # ------------------------------------------------ VsCode Setup --------------------------------------------------
-
 # Options
 ARG INSTALL_ZSH="true"
 ARG UPGRADE_PACKAGES="false"
@@ -131,22 +142,17 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     # Use Docker script from script library to set things up
     && /bin/bash /tmp/library-scripts/docker-in-docker-debian.sh "${ENABLE_NONROOT_DOCKER}" "${USERNAME}" "${USE_MOBY}" \
     && /bin/bash /tmp/library-scripts/azcli-debian.sh \
-    # Tools
-    && apt-get -y install --no-install-recommends  gettext-base redis-tools \
+    # Install kubectl
+    && curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl \
+    && chmod +x /usr/local/bin/kubectl \
+    # Install Helm
+    && curl -s https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash - \
+    && chown ${USERNAME}:root /usr/local/share/copy-kube-config.sh \
+    && echo "source /usr/local/share/copy-kube-config.sh" | tee -a /root/.bashrc /root/.zshrc /home/${USERNAME}/.bashrc >> /home/${USERNAME}/.zshrc \
     # Clean up
-    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts/
-
-# Install kubectl
-RUN curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl \
-    && chmod +x /usr/local/bin/kubectl
-
-# Install Helm
-RUN curl -s https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash -
-
-# Script copies localhost's ~/.kube/config file into the container and swaps out
-# localhost for host.docker.internal on bash/zsh start to keep them in sync.
-RUN chown ${USERNAME}:root /usr/local/share/copy-kube-config.sh \
-    && echo "source /usr/local/share/copy-kube-config.sh" | tee -a /root/.bashrc /root/.zshrc /home/${USERNAME}/.bashrc >> /home/${USERNAME}/.zshrc
+    && apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/* /tmp/library-scripts/
 
 ARG WORK_DIR="/workspace"
 

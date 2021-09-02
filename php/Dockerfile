@@ -1,5 +1,5 @@
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
-ARG VARIANT="8.0-fpm-alpine3.13"
+ARG VARIANT="8.0-cli-alpine3.13"
 ARG COMPOSER_VERSION="2.0"
 ARG ROADRUNNER_VERSION="2.3.3"
 
@@ -13,9 +13,56 @@ FROM spiralscout/roadrunner:${ROADRUNNER_VERSION} as roadrunner
 FROM litan1106/golang-supervisord as supervisord
 
 # ==================================================================================================================
+#                                                --- PHP EXTENIONS ---
+# ==================================================================================================================
+FROM php:${VARIANT} as php-ext
+
+ARG PECL_PKGS="igbinary-3.2.6 msgpack-2.1.2 mongodb-1.10.0 protobuf-3.17.3 grpc-1.39.0 xdebug-3.0.4"
+ARG PECL_PKGS_TAR="igbinary-3.2.6.tgz msgpack-2.1.2.tgz mongodb-1.10.0.tgz protobuf-3.17.3.tgz grpc-1.39.0.tgz xdebug-3.0.4.tgz"
+ARG PECL_PKGS_ENABLE="igbinary msgpack mongodb protobuf grpc xdebug"
+
+RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
+    openssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt-dev gmp-dev \
+    && docker-php-source extract \
+    && docker-php-ext-configure zip --with-zip \
+    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
+    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
+    && pecl channel-update pecl.php.net \
+    && pecl download ${PECL_PKGS} \
+    && pecl install ${PECL_PKGS_TAR} > /dev/null \
+    && docker-php-ext-enable ${PECL_PKGS_ENABLE} \
+    && pecl bundle redis && cd redis \
+    && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack \
+    && make && make install \
+    && docker-php-ext-enable redis \
+    && docker-php-source delete \
+    && apk del -f .build-ext-deps \
+    # Setup php.ini
+    && mv ${PHP_INI_DIR}/php.ini-production ${PHP_INI_DIR}/php.ini \
+    && sed -i "s/memory_limit = .*/memory_limit = 1028M/" ${PHP_INI_DIR}/php.ini \
+    && echo "xdebug.mode=off" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.start_with_request=yes" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.client_port=9003" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini
+
+# ==================================================================================================================
 #                                                  --- BASE PHP ---
 # ==================================================================================================================
 FROM php:${VARIANT}
+
+ARG PHP_MEMORY_LIMIT="4096M"
+ARG OPCACHE_ENABLE=1
+ARG OPCACHE_VALIDATE_TIMESTAMPS=0
+
+ENV PHP_MEMORY_LIMIT ${PHP_MEMORY_LIMIT}
+ENV OPCACHE_ENABLE ${OPCACHE_ENABLE}
+ENV OPCACHE_VALIDATE_TIMESTAMPS ${OPCACHE_VALIDATE_TIMESTAMPS}
+ENV COMPOSER_ALLOW_SUPERUSER 1
+ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
+
+RUN apk add --no-cache curl bash nano gettext \
+    unzip zip libzip libxml2 libxslt \
+    # Fix Iconv
+    gnu-libiconv
 
 # ----------------------------------------------------- Node.js ----------------------------------------------------
 ENV NODE_VERSION 14.17.6
@@ -138,50 +185,15 @@ RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /usr/local/bin/node /usr/bin/node \
     && ln -s /usr/local/bin/yarn /usr/bin/yarn
 
-# ------------------------------------------------ Extensions --------------------------------------------------
-ARG PECL_PHP_DEP_VERSIONS="igbinary-3.2.6 msgpack-2.1.2 mongodb-1.10.0 protobuf-3.17.3 grpc-1.39.0 xdebug-3.0.4"
-ARG PECL_PHP_DEPS="igbinary msgpack mongodb protobuf grpc xdebug"
-
-ARG PHP_MEMORY_LIMIT="4096M"
-ARG OPCACHE_ENABLE=1
-ARG OPCACHE_VALIDATE_TIMESTAMPS=0
-
-ENV PHP_MEMORY_LIMIT ${PHP_MEMORY_LIMIT}
-ENV OPCACHE_ENABLE ${OPCACHE_ENABLE}
-ENV OPCACHE_VALIDATE_TIMESTAMPS ${OPCACHE_VALIDATE_TIMESTAMPS}
-
-ENV COMPOSER_ALLOW_SUPERUSER 1
-ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
-
-RUN apk add --no-cache curl bash nano gettext \
-    unzip zip libzip libxml2 libxslt \
-    # Fix Iconv
-    gnu-libiconv \
-    && apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
-    openssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt-dev gmp-dev \
-    && docker-php-source extract \
-    && docker-php-ext-configure zip --with-zip \
-    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
-    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
-    && pecl channel-update pecl.php.net \
-    && pecl install ${PECL_PHP_DEP_VERSIONS} > /dev/null \
-    && docker-php-ext-enable ${PECL_PHP_DEPS} \
-    && pecl bundle redis && cd redis \
-    && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack \
-    && make && make install \
-    && docker-php-ext-enable redis \
-    && docker-php-source delete \
-    && apk del -f .build-ext-deps \
-    # Setup php.ini
-    && mv ${PHP_INI_DIR}/php.ini-production ${PHP_INI_DIR}/php.ini \
-    && rm -rf /var/www/* /usr/local/etc/php-fpm.d/* \
-    && sed -i "s/memory_limit = .*/memory_limit = 1028M/" ${PHP_INI_DIR}/php.ini \
-    && echo "xdebug.mode=off" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
-    && echo "xdebug.start_with_request=yes" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini \
-    && echo "xdebug.client_port=9003" >> ${PHP_INI_DIR}/conf.d/docker-php-ext-xdebug.ini
-
+# -------------------------------------------------- Composer ---------------------------------------------------
 COPY --from=composer /usr/bin/composer /usr/bin/composer
+# ------------------------------------------------- RoadRunner --------------------------------------------------
 COPY --from=roadrunner /usr/bin/rr /usr/bin/rr
+
+# ----------------------------------------------- PHP-Extensions ------------------------------------------------
+COPY --from=php-ext ${PHP_INI_DIR}/php.ini ${PHP_INI_DIR}/php.ini
+COPY --from=php-ext ${PHP_INI_DIR}/conf.d/ ${PHP_INI_DIR}/conf.d/
+COPY --from=php-ext /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 
 # ------------------------------------------------ Supervisord --------------------------------------------------
 ARG SUPERVISOR_USERNAME="supervisor"
