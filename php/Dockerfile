@@ -1,7 +1,7 @@
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
 ARG VARIANT="8.0-cli-alpine3.13"
 ARG COMPOSER_VERSION="2.0"
-ARG ROADRUNNER_VERSION="2.3.3"
+ARG ROADRUNNER_VERSION="2.4.0"
 
 # ------------------------------------------------- Composer Image -------------------------------------------------
 FROM composer:${COMPOSER_VERSION} as composer
@@ -26,11 +26,13 @@ COPY --from=litan1106/php-pecl:latest /pecl/ /pecl/
 
 RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
     openssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt-dev gmp-dev \
+    # linux-headers are required for building grpc extension
+    libstdc++ zlib-dev linux-headers \
     && docker-php-source extract \
     && docker-php-ext-configure zip --with-zip \
     && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
     bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
-    && pecl install ${PECL_PKGS} > /dev/null \
+    && pecl install ${PECL_PKGS} \
     && docker-php-ext-enable ${PECL_PKGS_ENABLE} \
     && pecl bundle redis && cd redis \
     && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack \
