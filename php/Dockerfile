@@ -1,7 +1,7 @@
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
 ARG VARIANT="8.0-cli-alpine3.13"
 ARG COMPOSER_VERSION="2.0"
-ARG ROADRUNNER_VERSION="2.5.2"
+ARG ROADRUNNER_VERSION="2.5.6"
 
 # ------------------------------------------------- Composer Image -------------------------------------------------
 FROM composer:${COMPOSER_VERSION} as composer
