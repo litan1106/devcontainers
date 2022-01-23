@@ -118,30 +118,36 @@ COPY --from=supervisord /usr/bin/supervisord /usr/bin/supervisord
 # Options
 ARG INSTALL_ZSH="true"
 ARG UPGRADE_PACKAGES="false"
+# [Option] Enable non-root Docker access in container
 ARG ENABLE_NONROOT_DOCKER="true"
-ARG USE_MOBY="false"
+# [Option] Use the OSS Moby CLI instead of the licensed Docker CLI
+ARG USE_MOBY="true"
+
+# Enable new "BUILDKIT" mode for Docker CLI
+ENV DOCKER_BUILDKIT=1
+
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
 # Script locations
-ARG COMMON_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/master/script-library/common-debian.sh"
-ARG DOCKER_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/main/containers/docker-in-docker/.devcontainer/library-scripts/docker-in-docker-debian.sh"
-ARG AZURE_CLI_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/master/script-library/azcli-debian.sh"
-ARG COPY_KUBE_CONFIG_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/master/containers/kubernetes-helm/.devcontainer/copy-kube-config.sh"
+ARG COMMON_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/main/script-library/common-debian.sh"
+ARG DOCKER_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/main/script-library/docker-debian.sh"
+ARG AZURE_CLI_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/main/script-library/azcli-debian.sh"
+ARG COPY_KUBE_CONFIG_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/main/containers/kubernetes-helm/.devcontainer/copy-kube-config.sh"
 
 # Download scripts to /tmp/library-scripts
 RUN mkdir /tmp/library-scripts \
     && curl -sSL $COMMON_SCRIPT_SOURCE -o /tmp/library-scripts/common-debian.sh \
-    && curl -sSL $DOCKER_SCRIPT_SOURCE -o /tmp/library-scripts/docker-in-docker-debian.sh \
+    && curl -sSL $DOCKER_SCRIPT_SOURCE -o /tmp/library-scripts/docker-debian.sh \
     && curl -sSL $AZURE_CLI_SCRIPT_SOURCE -o /tmp/library-scripts/azcli-debian.sh \
     && curl -sSL $COPY_KUBE_CONFIG_SCRIPT_SOURCE -o /usr/local/share/copy-kube-config.sh
 
 # Install needed packages and setup non-root user. Use a separate RUN statement to add your own dependencies.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && /bin/bash /tmp/library-scripts/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" \
+    && /bin/bash /tmp/library-scripts/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" "true" "true" \
     # Use Docker script from script library to set things up
-    && /bin/bash /tmp/library-scripts/docker-in-docker-debian.sh "${ENABLE_NONROOT_DOCKER}" "${USERNAME}" "${USE_MOBY}" \
+    && /bin/bash /tmp/library-scripts/docker-debian.sh "${ENABLE_NONROOT_DOCKER}" "/var/run/docker-host.sock" "/var/run/docker.sock" "${USERNAME}" \
     && /bin/bash /tmp/library-scripts/azcli-debian.sh \
     # Install kubectl
     && curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl \
