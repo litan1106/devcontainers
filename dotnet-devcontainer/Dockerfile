@@ -1,31 +1,31 @@
-# Update the VARIANT arg in docker-compose.yml to pick a .NET version
-ARG VARIANT=6.0
+# ----------------------------------------------- Build Time Arguments ---------------------------------------------
+ARG VARIANT="6.0"
 
 # ==================================================================================================================
 #                                                  --- .NET ---
 # ==================================================================================================================
 FROM mcr.microsoft.com/dotnet/sdk:${VARIANT}
 
-# ----------------------------------------------------- Chromium -------------------------------------------------------
-ENV NPM_CONFIG_PREFIX=/opt/.npm-global
+ENV NPM_CONFIG_PREFIX="/opt/.npm-global"
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
+ENV PUPPETEER_EXECUTABLE_PATH "/usr/bin/google-chrome"
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    # Nodejs and Yarn
+    # Required pkgs for Zip, SOAP and XML
+    && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
+    libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev \
+    # Tools
+    gettext-base nano redis-tools \
+    # Nodejs and Yarn for Puppeteer and Websocket
     && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
     && curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
     && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
     && apt-get update \
     && apt-get -y install --no-install-recommends nodejs yarn \
     # Chrome for Puppeteer
-    && apt-get -y install --no-install-recommends \
-    chromium \
-    fonts-freefont-ttf \
+    && apt-get -y install --no-install-recommends chromium fonts-freefont-ttf \
     && mkdir -p /opt/.npm-global \
     && chmod -R 777 /opt/.npm-global \
-    # Util Libs
-    && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
-    libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev \
     # Clean up
     && apt-get autoremove -y \
     && apt-get clean -y \
@@ -42,7 +42,6 @@ RUN mkdir -p /usr/lib/node_modules/ \
     && ln -s /usr/bin/chromium /usr/bin/google-chrome
 
 # ------------------------------------------------ VsCode Setup --------------------------------------------------
-
 # Options
 ARG INSTALL_ZSH="true"
 ARG UPGRADE_PACKAGES="false"
@@ -64,8 +63,6 @@ ARG DOCKER_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev
 ARG AZURE_CLI_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/main/script-library/azcli-debian.sh"
 ARG COPY_KUBE_CONFIG_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/main/containers/kubernetes-helm/.devcontainer/copy-kube-config.sh"
 
-ENV DOTNET_CLI_HOME="/dotnet"
-
 # Download scripts to /tmp/library-scripts
 RUN mkdir /tmp/library-scripts \
     && curl -sSL $COMMON_SCRIPT_SOURCE -o /tmp/library-scripts/common-debian.sh \
@@ -86,11 +83,6 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && curl -s https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash - \
     && chown ${USERNAME}:root /usr/local/share/copy-kube-config.sh \
     && echo "source /usr/local/share/copy-kube-config.sh" | tee -a /root/.bashrc /root/.zshrc /home/${USERNAME}/.bashrc >> /home/${USERNAME}/.zshrc \
-    # For VisualStudioCodeCredential
-    && apt-get -y install --no-install-recommends libsecret-1-dev \
-    # DotNet Home
-    && mkdir -p ${DOTNET_CLI_HOME} \
-    && chown ${USERNAME}:root ${DOTNET_CLI_HOME} \
     # Clean up
     && apt-get autoremove -y \
     && apt-get clean -y \

@@ -28,7 +28,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev libgmp-dev \
     && docker-php-source extract \
     && docker-php-ext-configure zip --with-zip \
-    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
+    # Fix the sockets with $CFLAGS
+    && CFLAGS="$CFLAGS -D_GNU_SOURCE" docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
     bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
     && pecl install ${PECL_PKGS} > /dev/null \
     && docker-php-ext-enable ${PECL_PKGS_ENABLE} \

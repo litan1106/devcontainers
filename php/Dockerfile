@@ -30,7 +30,8 @@ RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
     libstdc++ zlib-dev linux-headers \
     && docker-php-source extract \
     && docker-php-ext-configure zip --with-zip \
-    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
+    # Fix the sockets with $CFLAGS
+    && CFLAGS="$CFLAGS -D_GNU_SOURCE" docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
     bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
     && pecl install ${PECL_PKGS} > /dev/null \
     && docker-php-ext-enable ${PECL_PKGS_ENABLE} \
