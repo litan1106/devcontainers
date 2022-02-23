@@ -1,7 +1,7 @@
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
-ARG VARIANT="8.0-cli-alpine3.13"
-ARG COMPOSER_VERSION="2.0"
-ARG ROADRUNNER_VERSION="2.7.3"
+ARG VARIANT="8.0-cli-alpine3.15"
+ARG COMPOSER_VERSION="2.2"
+ARG ROADRUNNER_VERSION="2.7.9"
 
 # ------------------------------------------------- Composer Image -------------------------------------------------
 FROM composer:${COMPOSER_VERSION} as composer
@@ -66,7 +66,7 @@ ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
 RUN apk add --no-cache curl bash nano gettext \
     unzip zip libzip libxml2 libxslt \
     # Fix Iconv
-    gnu-libiconv
+    && apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/v3.13/community/ gnu-libiconv=1.15-r3
 
 # ----------------------------------------------------- Node.js ----------------------------------------------------
 ENV NODE_VERSION 14.17.6
