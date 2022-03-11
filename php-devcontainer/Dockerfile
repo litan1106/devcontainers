@@ -17,7 +17,7 @@ FROM litan1106/golang-supervisord as supervisord
 # ==================================================================================================================
 FROM php:${VARIANT} as php-ext
 
-ARG PECL_PKGS="igbinary-3.2.6.tgz msgpack-2.1.2.tgz mongodb-1.11.1.tgz protobuf-3.19.1.tgz grpc-1.41.0.tgz xdebug-3.1.1.tgz"
+ARG PECL_PKGS="igbinary-3.2.7.tgz msgpack-2.1.2.tgz mongodb-1.12.1.tgz protobuf-3.19.4.tgz grpc-1.44.0.tgz xdebug-3.1.3.tgz"
 ARG PECL_PKGS_ENABLE="igbinary msgpack mongodb protobuf grpc xdebug"
 
 WORKDIR /pecl
@@ -30,7 +30,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && docker-php-ext-configure zip --with-zip \
     # Fix the sockets with $CFLAGS
     && CFLAGS="$CFLAGS -D_GNU_SOURCE" docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
-    bcmath exif mbstring opcache pcntl soap xsl zip gmp sockets > /dev/null \
+    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
     && pecl install ${PECL_PKGS} > /dev/null \
     && docker-php-ext-enable ${PECL_PKGS_ENABLE} \
     && pecl bundle redis && cd redis \
@@ -72,7 +72,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     # Tools
     gettext-base nano redis-tools \
     # Nodejs and Yarn for Puppeteer and Websocket
-    && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
+    && curl -sL https://deb.nodesource.com/setup_16.x | bash - \
     && curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
     && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
     && apt-get update \

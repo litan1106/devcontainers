@@ -17,7 +17,7 @@ FROM litan1106/golang-supervisord as supervisord
 # ==================================================================================================================
 FROM php:${VARIANT} as php-ext
 
-ARG PECL_PKGS="igbinary-3.2.6.tgz msgpack-2.1.2.tgz mongodb-1.11.1.tgz protobuf-3.19.1.tgz grpc-1.41.0.tgz xdebug-3.1.1.tgz"
+ARG PECL_PKGS="igbinary-3.2.7.tgz msgpack-2.1.2.tgz mongodb-1.12.1.tgz protobuf-3.19.4.tgz grpc-1.44.0.tgz xdebug-3.1.3.tgz"
 ARG PECL_PKGS_ENABLE="igbinary msgpack mongodb protobuf grpc xdebug"
 
 WORKDIR /pecl
@@ -32,10 +32,10 @@ RUN apk add --no-cache --virtual .build-ext-deps ${PHPIZE_DEPS} \
     && docker-php-ext-configure zip --with-zip \
     # Fix the sockets with $CFLAGS
     && CFLAGS="$CFLAGS -D_GNU_SOURCE" docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql \
-    bcmath exif mbstring opcache pcntl soap xsl zip gmp sockets > /dev/null \
+    bcmath exif opcache pcntl soap xsl zip gmp sockets > /dev/null \
     && pecl install ${PECL_PKGS} > /dev/null \
     && docker-php-ext-enable ${PECL_PKGS_ENABLE} \
-    && pecl bundle redis && cd redis \
+    && pecl bundle redis-5.3.7.tgz && cd redis \
     && phpize && ./configure --enable-redis-igbinary --enable-redis-msgpack \
     && make && make install \
     && docker-php-ext-enable redis \
@@ -69,7 +69,7 @@ RUN apk add --no-cache curl bash nano gettext \
     && apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/v3.13/community/ gnu-libiconv=1.15-r3
 
 # ----------------------------------------------------- Node.js ----------------------------------------------------
-ENV NODE_VERSION 14.19.0
+ENV NODE_VERSION 16.14.0
 
 RUN addgroup -g 1000 node \
     && adduser -u 1000 -G node -s /bin/sh -D node \
@@ -81,7 +81,7 @@ RUN addgroup -g 1000 node \
       && case "${alpineArch##*-}" in \
         x86_64) \
           ARCH='x64' \
-          CHECKSUM="8d5e638d88b62de2f147dee812a5d74e4860a20468eb7ff32c41a02b58e2aebf" \
+          CHECKSUM="36708b3daa37f9eda5f732cec40690d1338c3c376c0f0ec3c9cb46c6cdf52f1b" \
           ;; \
         *) ;; \
       esac \
