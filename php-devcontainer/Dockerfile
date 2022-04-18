@@ -1,7 +1,7 @@
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
 ARG VARIANT="8.0-cli"
 ARG COMPOSER_VERSION="2.2"
-ARG ROADRUNNER_VERSION="2.8.2"
+ARG ROADRUNNER_VERSION="2.8.8"
 
 # ------------------------------------------------- Composer Image -------------------------------------------------
 FROM composer:${COMPOSER_VERSION} as composer
@@ -63,7 +63,7 @@ ENV OPCACHE_ENABLE ${OPCACHE_ENABLE}
 ENV OPCACHE_VALIDATE_TIMESTAMPS ${OPCACHE_VALIDATE_TIMESTAMPS}
 ENV COMPOSER_ALLOW_SUPERUSER 1
 
-ENV NPM_CONFIG_PREFIX=/opt/.npm-global
+ENV NPM_CONFIG_PREFIX="/opt/.npm-global"
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
@@ -116,13 +116,16 @@ ENV SUPERVISOR_PASSWORD ${SUPERVISOR_PASSWORD}
 COPY --from=supervisord /usr/bin/supervisord /usr/bin/supervisord
 
 # ------------------------------------------------ VsCode Setup --------------------------------------------------
-# Options
+# [Option] Install zsh
 ARG INSTALL_ZSH="true"
+# [Option] Upgrade OS packages to their latest versions
 ARG UPGRADE_PACKAGES="false"
 # [Option] Enable non-root Docker access in container
 ARG ENABLE_NONROOT_DOCKER="true"
 # [Option] Use the OSS Moby CLI instead of the licensed Docker CLI
 ARG USE_MOBY="true"
+# [Option] Select CLI version
+ARG CLI_VERSION="latest"
 
 # Enable new "BUILDKIT" mode for Docker CLI
 ENV DOCKER_BUILDKIT=1
@@ -148,13 +151,14 @@ RUN mkdir /tmp/library-scripts \
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && /bin/bash /tmp/library-scripts/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" "true" "true" \
     # Use Docker script from script library to set things up
-    && /bin/bash /tmp/library-scripts/docker-debian.sh "${ENABLE_NONROOT_DOCKER}" "/var/run/docker-host.sock" "/var/run/docker.sock" "${USERNAME}" \
+    && /bin/bash /tmp/library-scripts/docker-debian.sh "${ENABLE_NONROOT_DOCKER}" "/var/run/docker-host.sock" "/var/run/docker.sock" "${USERNAME}" "${USE_MOBY}" "${CLI_VERSION}" \
+    # Install the Azure CLI
     && /bin/bash /tmp/library-scripts/azcli-debian.sh \
-    # Install kubectl
+    # Install the kubectl
     && curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl \
     && chmod +x /usr/local/bin/kubectl \
-    # Install Helm
-    && curl -s https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash - \
+    # Install the Helm
+    && curl -s https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash - \
     && chown ${USERNAME}:root /usr/local/share/copy-kube-config.sh \
     && echo "source /usr/local/share/copy-kube-config.sh" | tee -a /root/.bashrc /root/.zshrc /home/${USERNAME}/.bashrc >> /home/${USERNAME}/.zshrc \
     # Clean up
@@ -162,6 +166,12 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/* /tmp/library-scripts/
 
-ARG WORK_DIR="/workspace"
+# Setting the ENTRYPOINT to docker-init.sh will configure non-root access to 
+# the Docker socket if "overrideCommand": false is set in devcontainer.json. 
+# The script will also execute CMD if you need to alter startup behaviors.
+ENTRYPOINT [ "/usr/local/share/docker-init.sh" ]
+CMD [ "sleep", "infinity" ]
 
-WORKDIR ${WORK_DIR}
+# [Optional] Uncomment this section to install additional OS packages.
+# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+#     && apt-get -y install --no-install-recommends <your-package-list-here>

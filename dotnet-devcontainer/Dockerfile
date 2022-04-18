@@ -1,5 +1,5 @@
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
-ARG VARIANT="6.0"
+ARG VARIANT="6.0-bullseye-slim"
 
 # ==================================================================================================================
 #                                                  --- .NET ---
@@ -11,44 +11,47 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 ENV PUPPETEER_EXECUTABLE_PATH "/usr/bin/google-chrome"
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    # Required pkgs for Zip, SOAP and XML
+    #
+    # Utils and Libs
     && apt-get -y install --no-install-recommends unzip zip libzip4 libxml2 libxslt1.1 \
     libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev \
-    # Tools
-    gettext-base nano redis-tools \
+    #
     # Nodejs and Yarn for Puppeteer and Websocket
     && curl -sL https://deb.nodesource.com/setup_16.x | bash - \
     && curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
     && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
     && apt-get update \
     && apt-get -y install --no-install-recommends nodejs yarn \
+    #
+    # Tools
+    gettext-base nano redis-tools \
+    #
     # Chrome for Puppeteer
-    && apt-get -y install --no-install-recommends chromium fonts-freefont-ttf \
+    && apt-get -y install --no-install-recommends \
+    chromium \
+    fonts-freefont-ttf \
     && mkdir -p /opt/.npm-global \
     && chmod -R 777 /opt/.npm-global \
+    && mkdir -p /usr/lib/node_modules/ \
+    && ln -s /opt/.npm-global/lib/node_modules/puppeteer /usr/lib/node_modules/puppeteer \
+    && ln -s /usr/bin/chromium /usr/bin/google-chrome \
+    #
     # Clean up
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-USER $USERNAME
-
-RUN npm install --global puppeteer
-
-USER root
-# Create symlink to /usr/bin and /usr/lib
-RUN mkdir -p /usr/lib/node_modules/ \
-    && ln -s /opt/.npm-global/lib/node_modules/puppeteer /usr/lib/node_modules/puppeteer \
-    && ln -s /usr/bin/chromium /usr/bin/google-chrome
-
 # ------------------------------------------------ VsCode Setup --------------------------------------------------
-# Options
+# [Option] Install zsh
 ARG INSTALL_ZSH="true"
+# [Option] Upgrade OS packages to their latest versions
 ARG UPGRADE_PACKAGES="false"
 # [Option] Enable non-root Docker access in container
 ARG ENABLE_NONROOT_DOCKER="true"
 # [Option] Use the OSS Moby CLI instead of the licensed Docker CLI
 ARG USE_MOBY="true"
+# [Option] Select CLI version
+ARG CLI_VERSION="latest"
 
 # Enable new "BUILDKIT" mode for Docker CLI
 ENV DOCKER_BUILDKIT=1
@@ -74,12 +77,13 @@ RUN mkdir /tmp/library-scripts \
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && /bin/bash /tmp/library-scripts/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" "true" "true" \
     # Use Docker script from script library to set things up
-    && /bin/bash /tmp/library-scripts/docker-debian.sh "${ENABLE_NONROOT_DOCKER}" "/var/run/docker-host.sock" "/var/run/docker.sock" "${USERNAME}" \
+    && /bin/bash /tmp/library-scripts/docker-debian.sh "${ENABLE_NONROOT_DOCKER}" "/var/run/docker-host.sock" "/var/run/docker.sock" "${USERNAME}" "${USE_MOBY}" "${CLI_VERSION}" \
+    # Install the Azure CLI
     && /bin/bash /tmp/library-scripts/azcli-debian.sh \
-    # Install kubectl
+    # Install the kubectl
     && curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl \
     && chmod +x /usr/local/bin/kubectl \
-    # Install Helm
+    # Install the Helm
     && curl -s https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash - \
     && chown ${USERNAME}:root /usr/local/share/copy-kube-config.sh \
     && echo "source /usr/local/share/copy-kube-config.sh" | tee -a /root/.bashrc /root/.zshrc /home/${USERNAME}/.bashrc >> /home/${USERNAME}/.zshrc \
@@ -88,6 +92,12 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/* /tmp/library-scripts/
 
-ARG WORK_DIR="/workspace"
+# Setting the ENTRYPOINT to docker-init.sh will configure non-root access to 
+# the Docker socket if "overrideCommand": false is set in devcontainer.json. 
+# The script will also execute CMD if you need to alter startup behaviors.
+ENTRYPOINT [ "/usr/local/share/docker-init.sh" ]
+CMD [ "sleep", "infinity" ]
 
-WORKDIR ${WORK_DIR}
+# [Optional] Uncomment this section to install additional OS packages.
+# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+#     && apt-get -y install --no-install-recommends <your-package-list-here>

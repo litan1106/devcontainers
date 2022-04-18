@@ -1,7 +1,7 @@
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
 ARG VARIANT="8.0-cli-alpine3.15"
 ARG COMPOSER_VERSION="2.2"
-ARG ROADRUNNER_VERSION="2.8.2"
+ARG ROADRUNNER_VERSION="2.8.8"
 
 # ------------------------------------------------- Composer Image -------------------------------------------------
 FROM composer:${COMPOSER_VERSION} as composer
@@ -162,7 +162,7 @@ RUN apk add --no-cache --virtual .build-deps-yarn curl gnupg tar \
   && yarn --version
 
 # ----------------------------------------------------- Chromium -------------------------------------------------------
-ENV NPM_CONFIG_PREFIX=/opt/.npm-global
+ENV NPM_CONFIG_PREFIX="/opt/.npm-global"
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
 RUN apk add --no-cache \
