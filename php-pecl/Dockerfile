@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
 ARG VARIANT="8.0-cli-alpine3.15"
 

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # -------------------------------------------- Build Time Arguments ------------------------------------------------
 ARG NODE_IMAGE_VERSION="16-alpine"
 

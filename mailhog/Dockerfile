@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # -------------------------------------------- Build Time Arguments ------------------------------------------------
 ARG ALPINE_VERSION="3.15"
 ARG GO_VERSION="1.17"

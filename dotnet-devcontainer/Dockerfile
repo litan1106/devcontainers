@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
 ARG VARIANT="6.0-bullseye-slim"
 
