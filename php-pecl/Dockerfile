@@ -7,7 +7,7 @@ ARG VARIANT="8.0-cli-alpine3.15"
 # ==================================================================================================================
 FROM php:${VARIANT}
 
-ARG PECL_PKGS="redis-5.3.7 igbinary-3.2.12 msgpack-2.1.2 mongodb-1.14.2 protobuf-3.21.9 grpc-1.50.0 xdebug-3.1.6"
+ARG PECL_PKGS="redis-5.3.7 igbinary-3.2.12 msgpack-2.1.2 mongodb-1.14.2 protobuf-3.21.9 grpc-1.49.0 xdebug-3.1.6"
 
 WORKDIR /pecl
 
@@ -21,5 +21,5 @@ RUN tar -xzf redis-5.3.7.tgz \
     && tar -xzf msgpack-2.1.2.tgz \
     && tar -xzf mongodb-1.14.2.tgz \
     && tar -xzf protobuf-3.21.9.tgz \
-    && tar -xzf grpc-1.50.0.tgz \
+    && tar -xzf grpc-1.49.0.tgz \
     && tar -xzf xdebug-3.1.6.tgz
