@@ -18,7 +18,7 @@ FROM litan1106/golang-supervisord as supervisord
 # ==================================================================================================================
 FROM php:${VARIANT} as php-ext
 
-ARG PECL_PKGS="igbinary-3.2.7.tgz msgpack-2.1.2.tgz mongodb-1.12.1.tgz protobuf-3.19.4.tgz grpc-1.44.0.tgz xdebug-3.1.3.tgz"
+ARG PECL_PKGS="igbinary-3.2.12.tgz msgpack-2.1.2.tgz mongodb-1.14.2.tgz protobuf-3.21.9.tgz grpc-1.49.0.tgz xdebug-3.1.3.tgz"
 ARG PECL_PKGS_ENABLE="igbinary msgpack mongodb protobuf grpc xdebug"
 
 WORKDIR /pecl
