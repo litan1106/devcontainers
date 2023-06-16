@@ -16,7 +16,7 @@ RUN apk add --no-cache --virtual .build-deps git gcc rust \
     && mkdir -p /root/gocode \
     && export GOPATH=/root/gocode \
     && go mod init supervisord-builder \
-    && go install github.com/ochinchina/supervisord \
+    && go get github.com/ochinchina/supervisord \
     && go build -a -ldflags "-linkmode external -extldflags -static" -o /usr/local/bin/supervisord github.com/ochinchina/supervisord \
     && rm -rf /root/gocode \
     && apk del -f .build-deps
