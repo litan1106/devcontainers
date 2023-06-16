@@ -11,7 +11,7 @@ FROM golang:${GO_VERSION}-alpine AS mailhog-builder
 RUN apk add --no-cache --virtual .build-deps git \
     && mkdir -p /root/gocode \
     && export GOPATH=/root/gocode \
-    && go get github.com/mailhog/MailHog \
+    && go install github.com/mailhog/MailHog \
     && mv /root/gocode/bin/MailHog /usr/local/bin \
     && rm -rf /root/gocode \
     && apk del -f .build-deps
