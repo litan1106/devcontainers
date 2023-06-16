@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build_php:
     runs-on: ubuntu-latest
     steps:
       -
@@ -21,7 +21,7 @@ jobs:
         uses: docker/setup-qemu-action@v2
       -
         name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2.287.1
+        uses: docker/setup-buildx-action@v2
       -
         name: Login to DockerHub
         uses: docker/login-action@v2
@@ -35,6 +35,25 @@ jobs:
           context: php-devcontainer
           push: true
           tags: litan1106/php-devcontainer:latest
+
+  build_dotnet:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: Build and push dotnet
         uses: docker/build-push-action@v4
