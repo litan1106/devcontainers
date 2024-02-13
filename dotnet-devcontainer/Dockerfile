@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
-ARG VARIANT="6.0-bullseye-slim"
+ARG VARIANT="8.0-bookworm-slim"
 
 # ==================================================================================================================
 #                                                  --- .NET ---
@@ -18,7 +18,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     libssl-dev libgcrypt-dev libzip-dev libxml2-dev libxslt1-dev \
     #
     # Nodejs and Yarn for Puppeteer and Websocket
-    && curl -sL https://deb.nodesource.com/setup_16.x | bash - \
+    && curl -sL https://deb.nodesource.com/setup_20.x | bash - \
     && curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
     && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
     && apt-get update \
