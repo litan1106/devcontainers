@@ -2,7 +2,7 @@
 # ----------------------------------------------- Build Time Arguments ---------------------------------------------
 ARG VARIANT="8.1-cli-alpine3.17"
 ARG COMPOSER_VERSION="2.5"
-ARG ROADRUNNER_VERSION="2023.1.5"
+ARG ROADRUNNER_VERSION="2023.3.0"
 
 # ------------------------------------------------- Composer Image -------------------------------------------------
 FROM composer:${COMPOSER_VERSION} as composer
@@ -18,7 +18,7 @@ FROM litan1106/golang-supervisord as supervisord
 # ==================================================================================================================
 FROM php:${VARIANT} as php-ext
 
-ARG PECL_PKGS="igbinary-3.2.12.tgz msgpack-2.1.2.tgz mongodb-1.14.2.tgz protobuf-3.21.9.tgz grpc-1.49.0.tgz xdebug-3.1.3.tgz"
+ARG PECL_PKGS="igbinary-3.2.15.tgz msgpack-2.2.0.tgz mongodb-1.14.2.tgz protobuf-3.25.2.tgz grpc-1.57.0.tgz xdebug-3.3.1.tgz"
 ARG PECL_PKGS_ENABLE="igbinary msgpack mongodb protobuf grpc xdebug"
 
 WORKDIR /pecl

@@ -7,7 +7,7 @@ ARG VARIANT="8.1-cli-alpine3.17"
 # ==================================================================================================================
 FROM php:${VARIANT}
 
-ARG PECL_PKGS="redis-5.3.7 igbinary-3.2.12 msgpack-2.1.2 mongodb-1.14.2 protobuf-3.21.9 grpc-1.49.0 xdebug-3.1.6"
+ARG PECL_PKGS="redis-5.3.7 igbinary-3.2.15 msgpack-2.2.0 mongodb-1.14.2 protobuf-3.25.2 grpc-1.57.0 xdebug-3.1.6"
 
 WORKDIR /pecl
 
@@ -17,9 +17,9 @@ RUN pecl channel-update pecl.php.net \
 
 # Check pecl packages
 RUN tar -xzf redis-5.3.7.tgz \
-    && tar -xzf igbinary-3.2.12.tgz \
-    && tar -xzf msgpack-2.1.2.tgz \
+    && tar -xzf igbinary-3.2.15.tgz \
+    && tar -xzf msgpack-2.2.0.tgz \
     && tar -xzf mongodb-1.14.2.tgz \
-    && tar -xzf protobuf-3.21.9.tgz \
-    && tar -xzf grpc-1.49.0.tgz \
+    && tar -xzf protobuf-3.25.2.tgz \
+    && tar -xzf grpc-1.57.0.tgz \
     && tar -xzf xdebug-3.1.6.tgz
