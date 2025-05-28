@@ -100,4 +100,4 @@ jobs:
         with:
           context: spark
           push: true
-          tags: litan1106/spark-python-3.11:latest
+          tags: litan1106/spark:3.5.2-python-3.12
