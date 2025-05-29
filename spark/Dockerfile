@@ -11,6 +11,9 @@ FROM apache/spark:${SPARK_VERSION} as spark
 # ==================================================================================================================
 FROM python:${VARIANT}
 
+ARG UV_CACHE_DIR=/opt/uv-cache
+ARG UV_LINK_MODE=copy
+ARG VIRTUAL_ENV=/opt/venv
 ARG SPARK_UID=1850
 
 LABEL description="Secured and optimized image with Python uv, Spark, and Temurin JDK."
@@ -38,9 +41,9 @@ COPY --from=spark /opt/entrypoint.sh /opt/entrypoint.sh
 
 # 4. Install uv by copying binaries
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-ENV UV_CACHE_DIR=/opt/uv-cache
-ENV UV_LINK_MODE=copy
-ENV VIRTUAL_ENV=/opt/venv
+ENV UV_CACHE_DIR=${UV_CACHE_DIR}
+ENV UV_LINK_MODE=${UV_LINK_MODE}
+ENV VIRTUAL_ENV=${VIRTUAL_ENV}
 ENV PATH="${VIRTUAL_ENV}/bin:${SPARK_HOME}/bin:${SPARK_HOME}/sbin:${JAVA_HOME}/bin:/bin:${PATH}"
 ENV PYSPARK_PYTHON=${VIRTUAL_ENV}/bin/python
 
