@@ -68,13 +68,6 @@ jobs:
           context: golang-supervisord
           push: true
           tags: litan1106/golang-supervisord:latest
-      -
-        name: Build and push go-mailhog
-        uses: docker/build-push-action@v4
-        with:
-          context: mailhog
-          push: true
-          tags: litan1106/mailhog:latest
 
   build_spark:
     runs-on: ubuntu-latest

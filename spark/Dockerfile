@@ -40,14 +40,14 @@ COPY --from=spark /opt/entrypoint.sh /opt/entrypoint.sh
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV UV_CACHE_DIR=/opt/uv-cache
 ENV UV_LINK_MODE=copy
-ENV VENV_PATH=/opt/venv
-ENV PATH="${VENV_PATH}/bin:${SPARK_HOME}/bin:${SPARK_HOME}/sbin:${JAVA_HOME}/bin:/bin:${PATH}"
-ENV PYSPARK_PYTHON=${VENV_PATH}/bin/python
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="${VIRTUAL_ENV}/bin:${SPARK_HOME}/bin:${SPARK_HOME}/sbin:${JAVA_HOME}/bin:/bin:${PATH}"
+ENV PYSPARK_PYTHON=${VIRTUAL_ENV}/bin/python
 
 # 5. Create directories and set permissions
 RUN set -eux; \
-    mkdir -p ${UV_CACHE_DIR} ${VENV_PATH} ${SPARK_HOME}/work-dir ${SPARK_HOME}/logs /opt/spark-apps; \
-    chown -R spark:spark ${UV_CACHE_DIR} ${VENV_PATH} ${SPARK_HOME}/work-dir ${SPARK_HOME}/logs /opt/spark-apps; \
+    mkdir -p ${UV_CACHE_DIR} ${VIRTUAL_ENV} ${SPARK_HOME}/work-dir ${SPARK_HOME}/logs /opt/spark-apps; \
+    chown -R spark:spark ${UV_CACHE_DIR} ${VIRTUAL_ENV} ${SPARK_HOME}/work-dir ${SPARK_HOME}/logs /opt/spark-apps; \
     chmod +x /bin/uv /bin/uvx; \
     chmod a+x /opt/decom.sh;
 
