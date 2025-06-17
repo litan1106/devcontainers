@@ -14,7 +14,7 @@ FROM python:${VARIANT}
 ARG UV_CACHE_DIR=/opt/uv-cache
 ARG UV_LINK_MODE=copy
 ARG VIRTUAL_ENV=/opt/venv
-ARG SPARK_UID=1850
+ARG SPARK_UID=185
 
 LABEL description="Secured and optimized image with Python uv, Spark, and Temurin JDK."
 
@@ -50,7 +50,7 @@ ENV PYSPARK_PYTHON=${VIRTUAL_ENV}/bin/python
 # 5. Create directories and set permissions
 RUN set -eux; \
     mkdir -p ${UV_CACHE_DIR} ${VIRTUAL_ENV} ${SPARK_HOME}/work-dir ${SPARK_HOME}/logs /opt/spark-apps; \
-    chown -R spark:spark ${UV_CACHE_DIR} ${VIRTUAL_ENV} ${SPARK_HOME}/work-dir ${SPARK_HOME}/logs /opt/spark-apps; \
+    chown -R spark:spark ${UV_CACHE_DIR} ${VIRTUAL_ENV} ${SPARK_HOME} /opt/spark-apps; \
     chmod +x /bin/uv /bin/uvx; \
     chmod a+x /opt/decom.sh;
 
